@@ -478,8 +478,9 @@ def _render_html() -> str:
   .tab { flex: 1; padding: 12px; text-align: center; font-size: 13px; font-weight: 600; cursor: pointer; background: #f8f8f8; border-right: 1px solid #ddd; transition: background 0.15s; }
   .tab:last-child { border-right: none; }
   .tab.active { background: #fff; }
-  .dropzone { padding: 40px 24px; text-align: center; cursor: pointer; border: 2px dashed transparent; transition: border-color 0.15s; }
+  .dropzone { padding: 40px 24px; text-align: center; cursor: pointer; border: 2px dashed transparent; transition: border-color 0.15s, background 0.15s; }
   .dropzone.drag-over { border-color: #222; background: #f9f9f9; }
+  .dropzone.has-file { background: #f0f7f0; border-color: #6aad6a; }
   .dropzone .icon { font-size: 32px; margin-bottom: 10px; }
   .dropzone .label { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
   .dropzone .sub { font-size: 13px; color: #888; }
@@ -655,6 +656,7 @@ function setFile(file) {
   selectedFile = file;
   document.getElementById('drop-label').textContent = file.name;
   document.getElementById('drop-sub').textContent = (file.size / 1024).toFixed(1) + ' KB';
+  document.getElementById('dropzone').classList.add('has-file');
   updateScrubBtn();
 }
 
@@ -812,6 +814,7 @@ function resetUI() {
   document.getElementById('drop-sub').textContent = 'or click to browse files';
   document.getElementById('file-input').value = '';
   document.getElementById('paste-input').value = '';
+  document.getElementById('dropzone').classList.remove('has-file');
   document.getElementById('results').style.display = 'none';
   document.getElementById('error-msg').style.display = 'none';
   document.getElementById('scrub-btn').disabled = true;
