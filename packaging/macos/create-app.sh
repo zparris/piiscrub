@@ -14,42 +14,39 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 DIST_DIR="$REPO_ROOT/dist/PIIScrub"
 APP_NAME="PIIScrub"
 APP_BUNDLE="$REPO_ROOT/dist/${APP_NAME}.app"
+STAGING_DIR="$REPO_ROOT/dist/dmg-staging"
 DMG_PATH="$REPO_ROOT/PIIScrub-macOS.dmg"
 PLIST_SRC="$REPO_ROOT/packaging/macos/Info.plist"
 
 echo "==> Creating .app bundle at $APP_BUNDLE"
 
-# Clean any previous .app
-rm -rf "$APP_BUNDLE"
+# Clean any previous .app and staging dir
+rm -rf "$APP_BUNDLE" "$STAGING_DIR"
 
 # Create bundle structure
 mkdir -p "$APP_BUNDLE/Contents/MacOS"
 mkdir -p "$APP_BUNDLE/Contents/Resources"
 
 # Copy the entire PyInstaller output into the bundle
+# The main binary (PIIScrub) is a self-contained Mach-O — no launcher script needed
 cp -R "$DIST_DIR/"* "$APP_BUNDLE/Contents/MacOS/"
 
-# Main launcher script — Finder runs this when the user double-clicks
-cat > "$APP_BUNDLE/Contents/MacOS/PIIScrub-launcher" <<'LAUNCHER'
-#!/usr/bin/env bash
-# Resolve the real directory of this script (handles symlinks)
-DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-exec "$DIR/PIIScrub"
-LAUNCHER
-chmod +x "$APP_BUNDLE/Contents/MacOS/PIIScrub-launcher"
+# Ensure the main binary is executable
+chmod +x "$APP_BUNDLE/Contents/MacOS/PIIScrub"
 
-# Info.plist — tells macOS what this app is
-# Update CFBundleExecutable to point at our launcher script
-sed 's|<string>PIIScrub</string>.*<!-- CFBundleExecutable -->|<string>PIIScrub-launcher</string>|' \
-    "$PLIST_SRC" > "$APP_BUNDLE/Contents/Info.plist" 2>/dev/null \
-    || cp "$PLIST_SRC" "$APP_BUNDLE/Contents/Info.plist"
+# Info.plist — CFBundleExecutable points directly at the PIIScrub Mach-O binary
+# (macOS Sonoma/Ventura reject shell scripts as CFBundleExecutable in unsigned apps)
+cp "$PLIST_SRC" "$APP_BUNDLE/Contents/Info.plist"
 
-# Patch CFBundleExecutable in the copied plist
-/usr/libexec/PlistBuddy -c \
-    "Set :CFBundleExecutable PIIScrub-launcher" \
-    "$APP_BUNDLE/Contents/Info.plist"
+echo "==> Bundle contents:"
+ls -lh "$APP_BUNDLE/Contents/MacOS/PIIScrub"
 
-echo "==> .app bundle created: $APP_BUNDLE"
+# ---------------------------------------------------------------------------
+# Staging directory — create-dmg needs a FOLDER containing the .app,
+# not the .app itself, to produce a DMG with a draggable app icon.
+# ---------------------------------------------------------------------------
+mkdir -p "$STAGING_DIR"
+cp -R "$APP_BUNDLE" "$STAGING_DIR/"
 
 # ---------------------------------------------------------------------------
 # Build DMG with drag-to-Applications layout
@@ -60,7 +57,6 @@ rm -f "$DMG_PATH"
 
 create-dmg \
     --volname "PIIScrub" \
-    --volicon "$APP_BUNDLE/Contents/Resources/AppIcon.icns" 2>/dev/null \
     --window-pos 200 120 \
     --window-size 600 400 \
     --icon-size 100 \
@@ -69,19 +65,7 @@ create-dmg \
     --app-drop-link 430 200 \
     --no-internet-enable \
     "$DMG_PATH" \
-    "$APP_BUNDLE" \
-    || \
-create-dmg \
-    --volname "PIIScrub" \
-    --window-pos 200 120 \
-    --window-size 600 400 \
-    --icon-size 100 \
-    --icon "${APP_NAME}.app" 150 200 \
-    --hide-extension "${APP_NAME}.app" \
-    --app-drop-link 430 200 \
-    --no-internet-enable \
-    "$DMG_PATH" \
-    "$APP_BUNDLE"
+    "$STAGING_DIR"
 
 echo "==> DMG ready: $DMG_PATH"
 ls -lh "$DMG_PATH"
