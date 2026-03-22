@@ -1153,6 +1153,7 @@ dependencies = [
     { name = "click" },
     { name = "cryptography" },
     { name = "faker" },
+    { name = "fastapi" },
     { name = "openpyxl" },
     { name = "pandas" },
     { name = "presidio-analyzer" },
@@ -1164,6 +1165,7 @@ dependencies = [
     { name = "spacy" },
     { name = "sqlalchemy" },
     { name = "structlog" },
+    { name = "uvicorn" },
 ]
 
 [package.optional-dependencies]
@@ -1175,11 +1177,9 @@ dev = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "fastapi" },
     { name = "fpdf2" },
     { name = "pytest" },
     { name = "pytest-cov" },
-    { name = "uvicorn" },
 ]
 
 [package.metadata]
@@ -1187,6 +1187,7 @@ requires-dist = [
     { name = "click", specifier = ">=8.1" },
     { name = "cryptography", specifier = ">=42.0" },
     { name = "faker", specifier = ">=24.0" },
+    { name = "fastapi", specifier = ">=0.110" },
     { name = "fpdf2", marker = "extra == 'dev'", specifier = ">=2.7" },
     { name = "openpyxl", specifier = ">=3.1" },
     { name = "pandas", specifier = ">=2.0" },
@@ -1201,16 +1202,15 @@ requires-dist = [
     { name = "spacy", specifier = ">=3.7" },
     { name = "sqlalchemy", specifier = ">=2.0" },
     { name = "structlog", specifier = ">=24.0" },
+    { name = "uvicorn", specifier = ">=0.29" },
 ]
 provides-extras = ["dev"]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "fastapi", specifier = ">=0.110" },
     { name = "fpdf2", specifier = ">=2.7" },
     { name = "pytest", specifier = ">=8.0" },
     { name = "pytest-cov", specifier = ">=5.0" },
-    { name = "uvicorn", specifier = ">=0.29" },
 ]
 
 [[package]]
