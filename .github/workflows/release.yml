@@ -1,0 +1,165 @@
+name: Release
+
+# Triggered by version tags: git tag v0.1.0 && git push --tags
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write   # needed to create/upload GitHub Release assets
+
+jobs:
+  build:
+    name: Build ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-13          # Intel — broadest macOS compatibility
+            artifact_name: PIIScrub-macOS.dmg
+            platform: macos
+          - os: windows-latest
+            artifact_name: PIIScrub-Windows-Setup.exe
+            platform: windows
+          - os: ubuntu-latest
+            artifact_name: PIIScrub-Linux.tar.gz
+            platform: linux
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Install Python 3.11
+        run: uv python install 3.11
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Install PyInstaller
+        run: uv pip install pyinstaller
+
+      # Cache the spaCy model — it's 560 MB and takes ~2 min to download
+      - name: Cache spaCy model
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.local/lib
+            ~/Library/Python
+            C:\Python311\Lib\site-packages\en_core_web_lg
+          key: spacy-en_core_web_lg-${{ runner.os }}-${{ hashFiles('pyproject.toml') }}
+          restore-keys: |
+            spacy-en_core_web_lg-${{ runner.os }}-
+
+      - name: Download spaCy model
+        run: uv run python -m spacy download en_core_web_lg
+
+      # -----------------------------------------------------------------------
+      # Build
+      # -----------------------------------------------------------------------
+      - name: Build with PyInstaller
+        run: uv run pyinstaller piiscrub.spec --clean --noconfirm
+
+      # -----------------------------------------------------------------------
+      # macOS: wrap into .app bundle then DMG
+      # -----------------------------------------------------------------------
+      - name: Install create-dmg (macOS)
+        if: matrix.platform == 'macos'
+        run: brew install create-dmg
+
+      - name: Create .app bundle and DMG (macOS)
+        if: matrix.platform == 'macos'
+        run: bash packaging/macos/create-app.sh
+
+      # -----------------------------------------------------------------------
+      # Windows: run Inno Setup to produce installer .exe
+      # -----------------------------------------------------------------------
+      - name: Build Windows installer (Windows)
+        if: matrix.platform == 'windows'
+        run: |
+          choco install innosetup --no-progress -y
+          iscc packaging\windows\installer.iss
+
+      # -----------------------------------------------------------------------
+      # Linux: create tarball
+      # -----------------------------------------------------------------------
+      - name: Create Linux tarball
+        if: matrix.platform == 'linux'
+        run: |
+          cd dist
+          tar -czf PIIScrub-Linux.tar.gz PIIScrub/
+          mv PIIScrub-Linux.tar.gz ../
+
+      # -----------------------------------------------------------------------
+      # Upload artifact to the GitHub Release
+      # -----------------------------------------------------------------------
+      - name: Create GitHub Release (first runner only)
+        if: matrix.platform == 'macos'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            --title "PIIScrub ${{ github.ref_name }}" \
+            --notes "## PIIScrub ${{ github.ref_name }}
+
+          ### Download
+
+          | Platform | File |
+          |----------|------|
+          | macOS | PIIScrub-macOS.dmg |
+          | Windows | PIIScrub-Windows-Setup.exe |
+          | Linux | PIIScrub-Linux.tar.gz |
+
+          ### macOS install
+          1. Download \`PIIScrub-macOS.dmg\`
+          2. Open it, drag PIIScrub to Applications
+          3. Double-click PIIScrub — browser opens automatically at http://localhost:7890
+
+          > **Gatekeeper warning?** Right-click → Open → Open, or run:
+          > \`\`\`
+          > xattr -cr /Applications/PIIScrub.app
+          > \`\`\`
+
+          ### Windows install
+          1. Download \`PIIScrub-Windows-Setup.exe\`
+          2. Run installer, click through prompts
+          3. Open from Start Menu — browser opens automatically
+
+          > **SmartScreen warning?** Click \"More info\" → \"Run anyway\"
+
+          ### Linux
+          \`\`\`bash
+          tar -xzf PIIScrub-Linux.tar.gz
+          ./PIIScrub/PIIScrub
+          \`\`\`
+
+          All processing happens locally. No data leaves your machine." \
+            --draft
+
+      - name: Upload macOS DMG
+        if: matrix.platform == 'macos'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${{ github.ref_name }}" \
+            PIIScrub-macOS.dmg --clobber
+
+      - name: Upload Windows installer
+        if: matrix.platform == 'windows'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${{ github.ref_name }}" ^
+            "packaging\windows\Output\PIIScrub-Windows-Setup.exe" --clobber
+
+      - name: Upload Linux tarball
+        if: matrix.platform == 'linux'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${{ github.ref_name }}" \
+            PIIScrub-Linux.tar.gz --clobber
