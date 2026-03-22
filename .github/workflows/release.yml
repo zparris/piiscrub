@@ -10,14 +10,68 @@ permissions:
   contents: write   # needed to create/upload GitHub Release assets
 
 jobs:
+  # -------------------------------------------------------------------------
+  # Stage 1: Create the draft release first so all build jobs can upload to it
+  # -------------------------------------------------------------------------
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            --repo "${{ github.repository }}" \
+            --title "PIIScrub ${{ github.ref_name }}" \
+            --draft \
+            --notes "## PIIScrub ${{ github.ref_name }}
+
+          ### Download
+
+          | Platform | File |
+          |----------|------|
+          | macOS | PIIScrub-macOS.dmg |
+          | Windows | PIIScrub-Windows-Setup.exe |
+          | Linux | PIIScrub-Linux.tar.gz |
+
+          ### macOS install
+          1. Download \`PIIScrub-macOS.dmg\`
+          2. Open it, drag PIIScrub to Applications
+          3. Double-click PIIScrub — browser opens automatically at http://localhost:7890
+
+          > **Gatekeeper warning?** Right-click → Open → Open, or run:
+          > \`\`\`
+          > xattr -cr /Applications/PIIScrub.app
+          > \`\`\`
+
+          ### Windows install
+          1. Download \`PIIScrub-Windows-Setup.exe\`
+          2. Run installer, click through prompts
+          3. Open from Start Menu — browser opens automatically
+
+          > **SmartScreen warning?** Click \"More info\" → \"Run anyway\"
+
+          ### Linux
+          \`\`\`bash
+          tar -xzf PIIScrub-Linux.tar.gz
+          ./PIIScrub/PIIScrub
+          \`\`\`
+
+          All processing happens locally. No data leaves your machine."
+
+  # -------------------------------------------------------------------------
+  # Stage 2: Build on all three platforms in parallel, then upload
+  # -------------------------------------------------------------------------
   build:
     name: Build ${{ matrix.os }}
+    needs: create-release       # wait for the release to exist before uploading
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: macos-latest      # Apple Silicon (M-series) — current default
+          - os: macos-latest
             artifact_name: PIIScrub-macOS.dmg
             platform: macos
           - os: windows-latest
@@ -85,71 +139,22 @@ jobs:
           mv PIIScrub-Linux.tar.gz ../
 
       # -----------------------------------------------------------------------
-      # Upload artifact to the GitHub Release
+      # Upload to the already-created GitHub Release
       # -----------------------------------------------------------------------
-      - name: Create GitHub Release (first runner only)
-        if: matrix.platform == 'macos'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release create "${{ github.ref_name }}" \
-            --title "PIIScrub ${{ github.ref_name }}" \
-            --notes "## PIIScrub ${{ github.ref_name }}
-
-          ### Download
-
-          | Platform | File |
-          |----------|------|
-          | macOS | PIIScrub-macOS.dmg |
-          | Windows | PIIScrub-Windows-Setup.exe |
-          | Linux | PIIScrub-Linux.tar.gz |
-
-          ### macOS install
-          1. Download \`PIIScrub-macOS.dmg\`
-          2. Open it, drag PIIScrub to Applications
-          3. Double-click PIIScrub — browser opens automatically at http://localhost:7890
-
-          > **Gatekeeper warning?** Right-click → Open → Open, or run:
-          > \`\`\`
-          > xattr -cr /Applications/PIIScrub.app
-          > \`\`\`
-
-          ### Windows install
-          1. Download \`PIIScrub-Windows-Setup.exe\`
-          2. Run installer, click through prompts
-          3. Open from Start Menu — browser opens automatically
-
-          > **SmartScreen warning?** Click \"More info\" → \"Run anyway\"
-
-          ### Linux
-          \`\`\`bash
-          tar -xzf PIIScrub-Linux.tar.gz
-          ./PIIScrub/PIIScrub
-          \`\`\`
-
-          All processing happens locally. No data leaves your machine." \
-            --draft
-
       - name: Upload macOS DMG
         if: matrix.platform == 'macos'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release upload "${{ github.ref_name }}" \
-            PIIScrub-macOS.dmg --clobber
+        run: gh release upload "${{ github.ref_name }}" PIIScrub-macOS.dmg --clobber
 
       - name: Upload Windows installer
         if: matrix.platform == 'windows'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release upload "${{ github.ref_name }}" ^
-            "packaging\windows\Output\PIIScrub-Windows-Setup.exe" --clobber
+        run: gh release upload "${{ github.ref_name }}" "packaging\windows\Output\PIIScrub-Windows-Setup.exe" --clobber
 
       - name: Upload Linux tarball
         if: matrix.platform == 'linux'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release upload "${{ github.ref_name }}" \
-            PIIScrub-Linux.tar.gz --clobber
+        run: gh release upload "${{ github.ref_name }}" PIIScrub-Linux.tar.gz --clobber
