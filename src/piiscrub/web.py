@@ -439,7 +439,8 @@ def _render_preview_page(token: str, meta: dict) -> str:
   <div class="doc-body">{highlighted}</div>
   <div class="legend">
     <mark class="pii" style="font-size:11px">[LABELS]</mark> indicate redacted PII.
-    Download the document to get the full formatted version.
+    Download the document to get the full formatted version.<br>
+    ⚠ Automated detection — human review recommended before sharing sensitive documents.
   </div>
 </div>
 </body>
@@ -510,6 +511,7 @@ def _render_html() -> str:
   .download-section { padding: 16px; }
   #session-info { display: none; background: #fffbf0; border: 1px solid #f0d060; border-radius: 6px; padding: 12px; margin-bottom: 12px; font-size: 12px; color: #555; }
   #session-info strong { color: #333; }
+  .review-notice { font-size: 12px; color: #7a5c00; background: #fffbeb; border: 1px solid #f0d060; border-radius: 6px; padding: 8px 12px; margin-bottom: 12px; }
   .footer { text-align: center; font-size: 11px; color: #aaa; margin-top: 32px; padding-bottom: 32px; line-height: 1.8; }
   .footer strong { color: #888; }
   .error-msg { background: #fef0f0; border: 1px solid #f0c0c0; border-radius: 6px; padding: 12px 16px; color: #c00; font-size: 13px; margin-top: 12px; display: none; }
@@ -604,6 +606,7 @@ def _render_html() -> str:
 
     <div class="card download-section">
       <div id="session-info"></div>
+      <div class="review-notice">⚠ Automated detection — review the output before sharing sensitive documents.</div>
       <div id="download-area"></div>
       <button class="btn-secondary" onclick="resetUI()">↺ Scrub Another Document</button>
     </div>

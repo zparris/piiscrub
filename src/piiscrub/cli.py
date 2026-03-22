@@ -314,6 +314,7 @@ def _print_summary(
         console.print("[dim]Keep this ID to restore original values after AI processing.[/dim]")
 
     console.print("[dim]Audit log updated: ~/.piiscrub/audit.db[/dim]")
+    console.print("[yellow]⚠[/yellow]  [dim]Automated detection — review the output before sharing sensitive documents.[/dim]")
 
 
 # ---------------------------------------------------------------------------
