@@ -17,7 +17,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: macos-13          # Intel — broadest macOS compatibility
+          - os: macos-latest      # Apple Silicon (M-series) — current default
             artifact_name: PIIScrub-macOS.dmg
             platform: macos
           - os: windows-latest
@@ -43,20 +43,10 @@ jobs:
       - name: Install PyInstaller
         run: uv pip install pyinstaller
 
-      # Cache the spaCy model — it's 560 MB and takes ~2 min to download
-      - name: Cache spaCy model
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.local/lib
-            ~/Library/Python
-            C:\Python311\Lib\site-packages\en_core_web_lg
-          key: spacy-en_core_web_lg-${{ runner.os }}-${{ hashFiles('pyproject.toml') }}
-          restore-keys: |
-            spacy-en_core_web_lg-${{ runner.os }}-
-
+      # Install spaCy model directly via wheel URL — avoids uv/pip conflict
+      # en_core_web_lg 3.8.0 is compatible with spaCy >=3.8.0,<3.9.0
       - name: Download spaCy model
-        run: uv run python -m spacy download en_core_web_lg
+        run: uv pip install "en-core-web-lg @ https://github.com/explosion/spacy-models/releases/download/en_core_web_lg-3.8.0/en_core_web_lg-3.8.0-py3-none-any.whl"
 
       # -----------------------------------------------------------------------
       # Build
