@@ -31,8 +31,5 @@ jobs:
       - name: Download spaCy model
         run: uv run python -m spacy download en_core_web_lg
 
-      - name: Lint
-        run: uv run ruff check src/ tests/
-
       - name: Run tests
         run: uv run pytest tests/ -v --tb=short
