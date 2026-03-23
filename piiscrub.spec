@@ -168,25 +168,7 @@ coll = COLLECT(
     upx_exclude=[],
     name="PIIScrub",
 )
-
-# macOS: wrap COLLECT output into a proper .app bundle.
-# PyInstaller's BUNDLE places libpython3.11.dylib in Contents/Frameworks/
-# (where the bootloader's rpath expects it). Manual bundle construction
-# puts everything flat in Contents/MacOS/ and breaks dlopen.
-if sys.platform == "darwin":
-    app = BUNDLE(
-        coll,
-        name="PIIScrub.app",
-        icon=None,
-        bundle_identifier="com.zparris.piiscrub",
-        info_plist={
-            "CFBundleName": "PIIScrub",
-            "CFBundleDisplayName": "PIIScrub",
-            "CFBundleVersion": "0.1.0",
-            "CFBundleShortVersionString": "0.1.0",
-            "CFBundleExecutable": "PIIScrub",
-            "NSHighResolutionCapable": True,
-            "LSMinimumSystemVersion": "12.0",
-            "LSUIElement": False,
-        },
-    )
+# NOTE: on macOS, create-app.sh wraps this COLLECT output into a .app bundle.
+# It moves libpython3.11.dylib to Contents/Frameworks/ (where the bootloader
+# rpath expects it) while keeping all data in Contents/MacOS/ so that
+# sys._MEIPASS stays on sys.path and spaCy's find_spec() can locate the model.
