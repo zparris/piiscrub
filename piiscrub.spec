@@ -168,3 +168,25 @@ coll = COLLECT(
     upx_exclude=[],
     name="PIIScrub",
 )
+
+# macOS: wrap COLLECT output into a proper .app bundle.
+# PyInstaller's BUNDLE places libpython3.11.dylib in Contents/Frameworks/
+# (where the bootloader's rpath expects it). Manual bundle construction
+# puts everything flat in Contents/MacOS/ and breaks dlopen.
+if sys.platform == "darwin":
+    app = BUNDLE(
+        coll,
+        name="PIIScrub.app",
+        icon=None,
+        bundle_identifier="com.zparris.piiscrub",
+        info_plist={
+            "CFBundleName": "PIIScrub",
+            "CFBundleDisplayName": "PIIScrub",
+            "CFBundleVersion": "0.1.0",
+            "CFBundleShortVersionString": "0.1.0",
+            "CFBundleExecutable": "PIIScrub",
+            "NSHighResolutionCapable": True,
+            "LSMinimumSystemVersion": "12.0",
+            "LSUIElement": False,
+        },
+    )
