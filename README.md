@@ -12,19 +12,75 @@ PIIScrub removes PII *before* the document reaches the AI. Because [GDPR Recital
 
 ---
 
-## Installation
+## Requirements
+
+- Python 3.11+
+- A local Python environment with the package installed, or `uv`
+- A one-time spaCy model download: `en_core_web_lg`
+
+Core runtime dependencies are installed automatically with the package and include `click`, `presidio-analyzer`, `presidio-anonymizer`, `spacy`, `pymupdf`, `python-docx`, `openpyxl`, `pandas`, `faker`, `sqlalchemy`, `cryptography`, `fastapi`, and `uvicorn`.
+
+## Install And Run
+
+### Option 1: install from PyPI
 
 ```bash
 pip install piiscrub
 
-# Required one-time step: download the NLP model (560MB)
+# Required one-time step: download the NLP model
 python -m spacy download en_core_web_lg
 ```
 
-Via `uvx` (no install needed):
+Then run either:
+
 ```bash
-uvx piiscrub scrub myfile.docx
+piiscrub scrub myfile.docx
+piiscrub serve
 ```
+
+### Option 2: run from a GitHub checkout with `uv`
+
+If you cloned this repository from GitHub, the `piiscrub` command is not available until you create an environment and install the project dependencies.
+
+```bash
+uv sync
+
+# Required one-time step: download the NLP model into the environment
+uv run python -m spacy download en_core_web_lg
+```
+
+Then run either:
+
+```bash
+uv run piiscrub scrub myfile.docx
+uv run piiscrub serve
+```
+
+### Option 3: run from a GitHub checkout with `pip`
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -e .
+
+# Required one-time step: download the NLP model
+python -m spacy download en_core_web_lg
+```
+
+Then run either:
+
+```bash
+piiscrub scrub myfile.docx
+piiscrub serve
+```
+
+### Option 4: one-off execution with `uvx`
+
+```bash
+uvx --with spacy --with presidio-analyzer --with presidio-anonymizer --with pymupdf --with python-docx --with openpyxl --with pandas --with faker --with sqlalchemy --with cryptography --with fastapi --with uvicorn piiscrub scrub myfile.docx
+```
+
+`uvx` is useful for quick CLI execution, but you still need the spaCy language model available locally. For repeated use, `uv sync` or `pip install -e .` is the cleaner path.
 
 Via Homebrew *(coming soon)*:
 ```bash
@@ -56,6 +112,13 @@ piiscrub serve
 ```
 
 Drag in a document → choose Redact or Pseudonymise → preview the scrubbed output → download.
+
+If you are running from a GitHub checkout instead of an installed package, prefix commands with `uv run`, for example:
+
+```bash
+uv run piiscrub scrub client_notes.docx
+uv run piiscrub serve
+```
 
 ---
 
